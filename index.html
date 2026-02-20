@@ -3,37 +3,51 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🎆 Chúc Mừng Năm Mới - Tết Nguyên Đán 2026 🎆</title>
-    <meta name="description" content="Chúc mừng năm mới 3D - Pháo bông và lời chúc Tết Nguyên Đán 2026">
+    <meta name="description" content="Chúc mừng năm mới - Pháo bông và lời chúc Tết Nguyên Đán 2026">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="🎆 Chúc Mừng Năm Mới 2026 🎆">
-    <meta property="og:description" content="Gửi lời chúc Tết Nguyên Đán 2026 với pháo hoa 3D tuyệt đẹp! 🎇🐍">
+    <meta property="og:description" content="Gửi lời chúc Tết Nguyên Đán 2026 với pháo hoa tuyệt đẹp! 🎇🐍">
     <meta property="og:image" content="https://datbonk1-dev.github.io/new-year-2026/preview.png">
     <meta property="og:url" content="https://datbonk1-dev.github.io/new-year-2026/">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="🎆 Chúc Mừng Năm Mới 2026 🎆">
-    <meta name="twitter:description" content="Gửi lời chúc Tết Nguyên Đán 2026 với pháo hoa 3D tuyệt đẹp! 🎇🐍">
+    <meta name="twitter:description" content="Gửi lời chúc Tết Nguyên Đán 2026 với pháo hoa tuyệt đẹp! 🎇🐍">
 
     <link rel="stylesheet" href="style.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Great+Vibes&family=Quicksand:wght@400;600;700&display=swap"
         rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 
 <body>
+    <!-- Start Screen -->
+    <div id="startScreen">
+        <div class="start-content">
+            <div class="start-emoji">🎆</div>
+            <h1 class="start-title">Chúc Mừng Năm Mới</h1>
+            <p class="start-subtitle">🐍 Tết Nguyên Đán 2026 🐍</p>
+            <button id="startBtn" onclick="startApp()">
+                <span class="btn-icon">🎇</span>
+                <span>Bắt Đầu</span>
+                <span class="btn-icon">🎇</span>
+            </button>
+            <p class="start-hint">Nhấn để xem pháo hoa & lời chúc</p>
+        </div>
+        <div class="start-particles" id="startParticles"></div>
+    </div>
+
     <!-- Countdown Overlay -->
-    <div id="countdownOverlay">
+    <div id="countdownOverlay" class="hidden">
         <div id="countdownNumber">3</div>
     </div>
 
-    <!-- Happy New Year — centered big, then shrinks to top -->
+    <!-- Happy New Year -->
     <div id="happyNewYear" class="hny-hidden">
         <div class="hny-content">
             <h1 class="hny-title">🎆 Happy New Year 🎆</h1>
@@ -41,20 +55,15 @@
         </div>
     </div>
 
-    <!-- 3D Scene Container -->
-    <div id="scene-container"></div>
+    <!-- 2D Canvas -->
+    <canvas id="fireworkCanvas"></canvas>
 
-    <!-- Wishes overlay (HTML on top of 3D) -->
+    <!-- Wishes overlay -->
     <div id="wishes-container"></div>
 
-    <!-- Controls hint -->
-    <div id="controls-hint">
-        🖱️ Kéo để xoay &nbsp;|&nbsp; 🔍 Cuộn để thu phóng &nbsp;|&nbsp; 👆 Click để bắn pháo
-    </div>
-
-    <!-- Share Button (Floating) -->
-    <button id="shareBtn" onclick="toggleSharePanel()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    <!-- Share Button -->
+    <button id="shareBtn" class="hidden" onclick="toggleSharePanel()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="18" cy="5" r="3" />
             <circle cx="6" cy="12" r="3" />
@@ -62,7 +71,7 @@
             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
         </svg>
-        Chia sẻ
+        <span>Chia sẻ</span>
     </button>
 
     <!-- Share Panel -->
@@ -72,28 +81,28 @@
             <button class="share-close" onclick="toggleSharePanel()">✕</button>
         </div>
         <div class="share-grid">
-            <button class="share-item" onclick="shareZalo()" style="--accent:#0068ff">
-                <div class="share-icon" style="background:#0068ff">💬</div>
+            <button class="share-item" onclick="shareZalo()">
+                <div class="share-icon zalo-bg">💬</div>
                 <span>Zalo</span>
             </button>
-            <button class="share-item" onclick="shareMessenger()" style="--accent:#00b2ff">
-                <div class="share-icon" style="background:linear-gradient(135deg,#00b2ff,#006aff)">💬</div>
+            <button class="share-item" onclick="shareMessenger()">
+                <div class="share-icon messenger-bg">💬</div>
                 <span>Messenger</span>
             </button>
-            <button class="share-item" onclick="shareFacebook()" style="--accent:#1877f2">
-                <div class="share-icon" style="background:#1877f2">f</div>
+            <button class="share-item" onclick="shareFacebook()">
+                <div class="share-icon fb-bg">f</div>
                 <span>Facebook</span>
             </button>
-            <button class="share-item" onclick="shareTelegram()" style="--accent:#0088cc">
-                <div class="share-icon" style="background:#0088cc">✈️</div>
+            <button class="share-item" onclick="shareTelegram()">
+                <div class="share-icon tg-bg">✈️</div>
                 <span>Telegram</span>
             </button>
-            <button class="share-item" onclick="shareTwitter()" style="--accent:#1da1f2">
-                <div class="share-icon" style="background:#000">𝕏</div>
+            <button class="share-item" onclick="shareTwitter()">
+                <div class="share-icon x-bg">𝕏</div>
                 <span>Twitter/X</span>
             </button>
-            <button class="share-item" onclick="copyLink()" style="--accent:#ffd700">
-                <div class="share-icon" style="background:linear-gradient(135deg,#ffd700,#ff8c00)">🔗</div>
+            <button class="share-item" onclick="copyLink()">
+                <div class="share-icon copy-bg">🔗</div>
                 <span id="copyText">Copy link</span>
             </button>
         </div>
@@ -102,7 +111,7 @@
         </div>
     </div>
 
-    <!-- Toast notification -->
+    <!-- Toast -->
     <div id="toast" class="toast hidden">Đã copy link!</div>
 
     <script src="script.js"></script>
