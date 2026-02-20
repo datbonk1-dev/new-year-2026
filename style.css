@@ -1,0 +1,308 @@
+/* ===== RESET & BASE ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'Quicksand', 'Dancing Script', cursive;
+    position: relative;
+}
+
+/* ===== 3D SCENE ===== */
+#scene-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#scene-container canvas {
+    display: block;
+}
+
+/* ===== COUNTDOWN OVERLAY ===== */
+#countdownOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(ellipse at center, #1a0a2e 0%, #000 100%);
+    transition: opacity 0.6s ease;
+}
+
+#countdownOverlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#countdownNumber {
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(8rem, 22vw, 20rem);
+    color: #ffd700;
+    text-shadow:
+        0 0 30px #ffd700,
+        0 0 60px #ff8c00,
+        0 0 100px #ff4500,
+        0 0 150px #ff0000;
+    animation: countPulse 0.8s ease-in-out;
+}
+
+@keyframes countPulse {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+
+    40% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+
+    70% {
+        transform: scale(0.95);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ===== HAPPY NEW YEAR ===== */
+#happyNewYear {
+    position: fixed;
+    z-index: 50;
+    text-align: center;
+    pointer-events: none;
+    transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+#happyNewYear.hny-hidden {
+    opacity: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+}
+
+#happyNewYear.hny-center {
+    opacity: 1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+#happyNewYear.hny-top {
+    opacity: 1;
+    top: 8px;
+    left: 50%;
+    transform: translate(-50%, 0) scale(0.4);
+    transform-origin: top center;
+}
+
+.hny-content {
+    white-space: nowrap;
+}
+
+.hny-title {
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(3rem, 7vw, 6rem);
+    color: #ffd700;
+    text-shadow:
+        0 0 20px #ffd700,
+        0 0 40px #ff8c00,
+        0 0 80px #ff4500,
+        0 0 120px #ff0000,
+        3px 3px 6px rgba(0, 0, 0, 0.9);
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+    animation: titleGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% {
+        text-shadow:
+            0 0 20px #ffd700,
+            0 0 40px #ff8c00,
+            0 0 80px #ff4500;
+    }
+
+    100% {
+        text-shadow:
+            0 0 30px #ffd700,
+            0 0 60px #ff8c00,
+            0 0 100px #ff4500,
+            0 0 140px #ff0000;
+    }
+}
+
+.hny-subtitle {
+    font-family: 'Dancing Script', cursive;
+    font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+    color: #ff6b6b;
+    text-shadow:
+        0 0 15px #ff6b6b,
+        0 0 35px #ff4444;
+    letter-spacing: 6px;
+}
+
+/* ===== WISHES CONTAINER ===== */
+#wishes-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.wish-card {
+    position: absolute;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 16px;
+    background: rgba(8, 3, 20, 0.8);
+    border: 2px solid transparent;
+    backdrop-filter: blur(6px);
+    animation: floatUp linear forwards, borderGlow 2.5s ease-in-out infinite;
+    pointer-events: none;
+    opacity: 0;
+    transform-style: preserve-3d;
+    perspective: 800px;
+}
+
+.wish-icon {
+    font-size: 1.6em;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+    animation: iconBounce 2s ease-in-out infinite;
+}
+
+@keyframes iconBounce {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+    }
+
+    50% {
+        transform: translateY(-4px) scale(1.1);
+    }
+}
+
+.wish-label {
+    font-family: 'Dancing Script', cursive;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translateY(60px) rotateX(20deg) scale(0.85);
+    }
+
+    5% {
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateY(-50vh) rotateX(0deg) scale(1);
+    }
+
+    85% {
+        opacity: 0.9;
+    }
+
+    95% {
+        opacity: 0.25;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-115vh) rotateX(-10deg) scale(0.65);
+    }
+}
+
+@keyframes borderGlow {
+    0% {
+        border-color: #ff0000;
+        box-shadow: 0 0 10px #ff000066, 0 0 25px #ff000033, inset 0 0 8px #ff000022;
+    }
+
+    14% {
+        border-color: #ff8c00;
+        box-shadow: 0 0 10px #ff8c0066, 0 0 25px #ff8c0033, inset 0 0 8px #ff8c0022;
+    }
+
+    28% {
+        border-color: #ffd700;
+        box-shadow: 0 0 10px #ffd70066, 0 0 25px #ffd70033, inset 0 0 8px #ffd70022;
+    }
+
+    42% {
+        border-color: #00ff7f;
+        box-shadow: 0 0 10px #00ff7f66, 0 0 25px #00ff7f33, inset 0 0 8px #00ff7f22;
+    }
+
+    57% {
+        border-color: #00bfff;
+        box-shadow: 0 0 10px #00bfff66, 0 0 25px #00bfff33, inset 0 0 8px #00bfff22;
+    }
+
+    71% {
+        border-color: #9b59ff;
+        box-shadow: 0 0 10px #9b59ff66, 0 0 25px #9b59ff33, inset 0 0 8px #9b59ff22;
+    }
+
+    85% {
+        border-color: #ff69b4;
+        box-shadow: 0 0 10px #ff69b466, 0 0 25px #ff69b433, inset 0 0 8px #ff69b422;
+    }
+
+    100% {
+        border-color: #ff0000;
+        box-shadow: 0 0 10px #ff000066, 0 0 25px #ff000033, inset 0 0 8px #ff000022;
+    }
+}
+
+/* ===== CONTROLS HINT ===== */
+#controls-hint {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    font-family: 'Quicksand', sans-serif;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 24px;
+    border-radius: 20px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    animation: fadeInHint 1s ease forwards 6s;
+    pointer-events: none;
+}
+
+@keyframes fadeInHint {
+    to {
+        opacity: 1;
+    }
+}
