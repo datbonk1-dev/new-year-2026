@@ -11,11 +11,13 @@ const particles = [];
 const rockets = [];
 const sparks = [];
 const stars = [];
-const MAX_PARTICLES = 2500;
-const MAX_SPARKS = 500;
+const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || window.innerWidth < 600;
+const MAX_PARTICLES = isMobile ? 1200 : 2500;
+const MAX_SPARKS = isMobile ? 200 : 500;
+const PARTICLE_SCALE = isMobile ? 0.55 : 1; // reduce particle counts on mobile
 
 function resize() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    DPR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
     W = window.innerWidth;
     H = window.innerHeight;
     canvas.width = W * DPR;
@@ -489,7 +491,7 @@ function drawFlash(x, y, color) {
 
 // 🌼 菊花 Chrysanthemum — dense, long golden-tipped trails
 function explChrysanthemum(x, y, pal) {
-    const count = 220;
+    const count = Math.floor(220 * PARTICLE_SCALE);
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 2 + Math.random() * 5;
@@ -503,7 +505,7 @@ function explChrysanthemum(x, y, pal) {
 
 // 🌸 牡丹 Peony — round, bright red/gold
 function explPeony(x, y, pal) {
-    const count = 160;
+    const count = Math.floor(160 * PARTICLE_SCALE);
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 3 + Math.random() * 4;
@@ -517,7 +519,7 @@ function explPeony(x, y, pal) {
 
 // 👑 锦冠 Brocade Crown — shower of golden sparks
 function explBrocade(x, y) {
-    const count = 250;
+    const count = Math.floor(250 * PARTICLE_SCALE);
     const golds = ['#ffd700', '#ffb300', '#ff8c00', '#ffe066', '#ffcc33'];
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -529,7 +531,7 @@ function explBrocade(x, y) {
         ));
     }
     // White core
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < Math.floor(30 * PARTICLE_SCALE); i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 1 + Math.random() * 2;
         particles.push(new Particle(x, y,
@@ -543,7 +545,7 @@ function explBrocade(x, y) {
 function explWaterfall(x, y) {
     const golds = ['#ffd700', '#ffb300', '#ffcc00', '#ffe066'];
     // Wide spread
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < Math.floor(200 * PARTICLE_SCALE); i++) {
         const angle = Math.random() * Math.PI * 2;
         const spreadX = (Math.random() - 0.5) * 6;
         const spreadY = Math.random() * 2 - 3;
@@ -554,7 +556,7 @@ function explWaterfall(x, y) {
         ));
     }
     // Red accent streaks
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < Math.floor(50 * PARTICLE_SCALE); i++) {
         const spreadX = (Math.random() - 0.5) * 5;
         particles.push(new Particle(x, y,
             spreadX, -(1 + Math.random() * 2),
@@ -565,13 +567,13 @@ function explWaterfall(x, y) {
 
 // 🧨 鞭炮 Firecracker String — rapid small pops
 function explFirecracker(x, y) {
-    const count = 15;
+    const count = Math.floor(15 * PARTICLE_SCALE);
     for (let i = 0; i < count; i++) {
         setTimeout(() => {
             const ox = x + (Math.random() - 0.5) * 60;
             const oy = y + (Math.random() - 0.5) * 40;
             // Small red burst
-            for (let j = 0; j < 18; j++) {
+            for (let j = 0; j < Math.floor(18 * PARTICLE_SCALE); j++) {
                 const a = Math.random() * Math.PI * 2;
                 const s = 1 + Math.random() * 2.5;
                 const c = Math.random() < 0.7 ? '#ff0000' : '#ffd700';
@@ -599,7 +601,7 @@ function explFirecracker(x, y) {
 // 🐉 龙 Dragon Spiral — spiraling trail
 function explDragon(x, y, pal) {
     const arms = 3 + Math.floor(Math.random() * 3);
-    const pointsPerArm = 40;
+    const pointsPerArm = Math.floor(40 * PARTICLE_SCALE);
     for (let a = 0; a < arms; a++) {
         const baseAngle = (a / arms) * Math.PI * 2;
         const color = pal[a % pal.length];
@@ -627,7 +629,7 @@ function explDragon(x, y, pal) {
 // 🏮 灯笼 Lantern Burst — warm round glow with red outer ring
 function explLantern(x, y, pal) {
     // Warm inner glow (gold/orange)
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < Math.floor(120 * PARTICLE_SCALE); i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 1.5 + Math.random() * 3;
         const c = ['#ffd700', '#ffaa00', '#ff8c00', '#ffe066'][Math.floor(Math.random() * 4)];
@@ -637,7 +639,7 @@ function explLantern(x, y, pal) {
         ));
     }
     // Red outer ring
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < Math.floor(60 * PARTICLE_SCALE); i++) {
         const angle = (i / 60) * Math.PI * 2;
         const speed = 5 + Math.random() * 1.5;
         particles.push(new Particle(x, y,
@@ -646,7 +648,7 @@ function explLantern(x, y, pal) {
         ));
     }
     // White center flash particles
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < Math.floor(20 * PARTICLE_SCALE); i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 0.5 + Math.random() * 1.5;
         particles.push(new Particle(x, y,
@@ -659,7 +661,7 @@ function explLantern(x, y, pal) {
 // 💍 双环 Double Ring — two concentric rings
 function explDoubleRing(x, y, pal) {
     // Outer ring — red
-    const outerCount = 80;
+    const outerCount = Math.floor(80 * PARTICLE_SCALE);
     const outerSpeed = 5.5;
     for (let i = 0; i < outerCount; i++) {
         const angle = (i / outerCount) * Math.PI * 2;
@@ -669,7 +671,7 @@ function explDoubleRing(x, y, pal) {
         ));
     }
     // Inner ring — gold
-    const innerCount = 50;
+    const innerCount = Math.floor(50 * PARTICLE_SCALE);
     const innerSpeed = 3;
     for (let i = 0; i < innerCount; i++) {
         const angle = (i / innerCount) * Math.PI * 2 + 0.15;
@@ -679,7 +681,7 @@ function explDoubleRing(x, y, pal) {
         ));
     }
     // Center sparkle
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < Math.floor(25 * PARTICLE_SCALE); i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 0.5 + Math.random();
         particles.push(new Particle(x, y,
@@ -691,7 +693,7 @@ function explDoubleRing(x, y, pal) {
 
 // 🌿 柳 Willow — golden drooping leaves
 function explWillow(x, y) {
-    const count = 180;
+    const count = Math.floor(180 * PARTICLE_SCALE);
     const golds = ['#ffd700', '#ffb300', '#ffcc33', '#ffe066'];
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -743,12 +745,16 @@ let launchInterval = 350;
 
 function autoLaunch(ts) {
     if (ts - lastLaunch > launchInterval) {
-        const count = Math.random() < 0.15 ? 4 : (Math.random() < 0.3 ? 3 : (Math.random() < 0.5 ? 2 : 1));
+        const count = isMobile
+            ? (Math.random() < 0.3 ? 2 : 1)
+            : (Math.random() < 0.15 ? 4 : (Math.random() < 0.3 ? 3 : (Math.random() < 0.5 ? 2 : 1)));
         for (let i = 0; i < count; i++) {
             rockets.push(new Rocket());
         }
         lastLaunch = ts;
-        launchInterval = 200 + Math.random() * 500;
+        launchInterval = isMobile
+            ? (400 + Math.random() * 600)
+            : (200 + Math.random() * 500);
     }
 }
 

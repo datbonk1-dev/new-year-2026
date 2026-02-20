@@ -284,29 +284,28 @@ body {
     z-index: 50;
     text-align: center;
     pointer-events: none;
-    transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    /* Fixed at center — only transform changes for GPU-smooth animation */
+    top: 50%;
+    left: 50%;
+    will-change: transform, opacity;
+    transition:
+        transform 1.8s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 #happyNewYear.hny-hidden {
     opacity: 0;
-    top: 50%;
-    left: 50%;
     transform: translate(-50%, -50%) scale(0);
 }
 
 #happyNewYear.hny-center {
     opacity: 1;
-    top: 50%;
-    left: 50%;
     transform: translate(-50%, -50%) scale(1);
 }
 
 #happyNewYear.hny-top {
     opacity: 1;
-    top: 8px;
-    left: 50%;
-    transform: translate(-50%, 0) scale(0.4);
-    transform-origin: top center;
+    transform: translate(-50%, calc(-50vh + 30px)) scale(0.38);
 }
 
 .hny-content {
@@ -370,12 +369,14 @@ body {
     gap: 6px;
     padding: 8px 16px;
     border-radius: 14px;
-    background: rgba(8, 3, 20, 0.75);
+    background: rgba(8, 3, 20, 0.7);
     border: 2px solid transparent;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(3px);
     animation: floatUp linear forwards, borderGlow 2.5s ease-in-out infinite;
     pointer-events: none;
     opacity: 0;
+    will-change: transform, opacity;
+    transform: translateZ(0);
 }
 
 .wish-icon {
@@ -764,46 +765,94 @@ body {
     .hny-title {
         font-size: clamp(1.8rem, 6vw, 3rem);
         letter-spacing: 2px;
+        /* Reduce text-shadow layers on mobile for performance */
+        text-shadow:
+            0 0 15px #ffd700,
+            0 0 30px #ff8c00,
+            2px 2px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    @keyframes titleGlow {
+        0% {
+            text-shadow:
+                0 0 15px #ffd700,
+                0 0 30px #ff8c00;
+        }
+
+        100% {
+            text-shadow:
+                0 0 20px #ffd700,
+                0 0 40px #ff8c00;
+        }
     }
 
     .hny-subtitle {
         font-size: clamp(0.9rem, 3vw, 1.3rem);
         letter-spacing: 2px;
+        text-shadow: 0 0 10px #ff6b6b;
     }
 
     #happyNewYear.hny-top {
-        transform: translate(-50%, 0) scale(0.35);
+        transform: translate(-50%, calc(-50vh + 20px)) scale(0.3);
     }
 
     .wish-card {
-        padding: 6px 12px;
+        padding: 5px 10px;
         border-radius: 10px;
         gap: 4px;
+        backdrop-filter: none;
+        /* Remove blur on mobile for performance */
+        background: rgba(8, 3, 20, 0.8);
+    }
+
+    .wish-icon {
+        font-size: 0.9rem;
+    }
+
+    .wish-label {
+        font-size: clamp(0.65rem, 2.5vw, 0.85rem) !important;
+    }
+
+    #musicBtn {
+        bottom: 55px;
+        right: 10px;
+        padding: 6px 12px;
+        font-size: 0.7rem;
     }
 
     #shareBtn {
         bottom: 14px;
-        right: 12px;
+        right: 10px;
         padding: 8px 14px;
+        font-size: 0.75rem;
     }
 
     .share-panel {
         right: 8px;
         left: 8px;
-        bottom: 60px;
+        bottom: 55px;
         width: auto;
         max-width: none;
-        padding: 16px;
+        padding: 14px;
+        backdrop-filter: blur(6px);
     }
 
     .share-icon {
-        width: 38px;
-        height: 38px;
-        font-size: 1.1rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
     }
 
     .share-grid {
         gap: 8px;
+    }
+
+    #countdownNumber {
+        font-size: clamp(5rem, 18vw, 10rem);
+        text-shadow:
+            0 0 20px #ffd700,
+            0 0 40px #ff8c00,
+            0 0 60px #ff4500;
     }
 }
 
@@ -813,15 +862,29 @@ body {
         font-size: 1.8rem;
     }
 
+    .start-subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+    }
+
     #startBtn {
         padding: 12px 28px;
         font-size: 1rem;
     }
 
+    #happyNewYear.hny-top {
+        transform: translate(-50%, calc(-50vh + 15px)) scale(0.25);
+    }
+
+    .wish-card {
+        padding: 4px 8px;
+        border-width: 1px;
+    }
+
     .share-icon {
-        width: 34px;
-        height: 34px;
-        font-size: 1rem;
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
     }
 }
 
@@ -852,6 +915,10 @@ body {
 
     #countdownNumber {
         font-size: 6rem;
+    }
+
+    #happyNewYear.hny-top {
+        transform: translate(-50%, calc(-50vh + 15px)) scale(0.3);
     }
 }
 
