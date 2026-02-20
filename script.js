@@ -122,69 +122,115 @@ function playWhistle() {
     osc.stop(audioCtx.currentTime + dur);
 }
 
-// ===== BACKGROUND MUSIC =====
-let bgMusic = null;
-let musicPlaying = false;
+// ===== YOUTUBE BACKGROUND MUSIC =====
+let ytPlayer = null;
+let ytReady = false;
 
-function initBgMusic() {
-    bgMusic = document.getElementById('bgMusic');
-    if (!bgMusic) {
-        bgMusic = document.createElement('audio');
-        bgMusic.id = 'bgMusic';
-        bgMusic.loop = true;
-        bgMusic.volume = 0.3;
-        // Free Tết/Lunar New Year background music sources
-        bgMusic.innerHTML = `
-            <source src="https://cdn.pixabay.com/audio/2022/01/27/audio_faf4702e68.mp3" type="audio/mpeg">
-            <source src="https://cdn.pixabay.com/audio/2023/01/16/audio_8b5e2eb328.mp3" type="audio/mpeg">
-        `;
-        document.body.appendChild(bgMusic);
+// Load YouTube IFrame API
+function loadYTApi() {
+    if (window.YT && window.YT.Player) {
+        onYouTubeIframeAPIReady();
+        return;
     }
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
 }
 
+window.onYouTubeIframeAPIReady = function () {
+    ytPlayer = new YT.Player('ytPlayer', {
+        videoId: 'CameKc-m39k',
+        playerVars: {
+            autoplay: 0,
+            loop: 1,
+            playlist: 'CameKc-m39k',
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            modestbranding: 1,
+            rel: 0,
+        },
+        events: {
+            onReady: function () {
+                ytReady = true;
+                ytPlayer.setVolume(40);
+            },
+            onStateChange: function (e) {
+                // Loop: when ended, replay
+                if (e.data === YT.PlayerState.ENDED) {
+                    ytPlayer.seekTo(0);
+                    ytPlayer.playVideo();
+                }
+            }
+        }
+    });
+};
+
 function toggleMusic() {
-    if (!bgMusic) initBgMusic();
+    if (!ytReady) {
+        loadYTApi();
+        return;
+    }
     if (musicPlaying) {
-        bgMusic.pause();
+        ytPlayer.pauseVideo();
         musicPlaying = false;
         document.getElementById('musicBtn').textContent = '🔇 Bật nhạc';
     } else {
-        bgMusic.play().catch(() => { });
+        ytPlayer.playVideo();
         musicPlaying = true;
         document.getElementById('musicBtn').textContent = '🔊 Tắt nhạc';
     }
 }
 
 function startMusic() {
-    if (!bgMusic) initBgMusic();
-    bgMusic.play().then(() => {
-        musicPlaying = true;
-        const btn = document.getElementById('musicBtn');
-        if (btn) btn.textContent = '🔊 Tắt nhạc';
-    }).catch(() => { });
+    if (!ytReady) {
+        // Wait for API to load, then auto-play
+        const check = setInterval(() => {
+            if (ytReady) {
+                clearInterval(check);
+                ytPlayer.playVideo();
+                musicPlaying = true;
+                const btn = document.getElementById('musicBtn');
+                if (btn) btn.textContent = '🔊 Tắt nhạc';
+            }
+        }, 500);
+        return;
+    }
+    ytPlayer.playVideo();
+    musicPlaying = true;
+    const btn = document.getElementById('musicBtn');
+    if (btn) btn.textContent = '🔊 Tắt nhạc';
 }
 
-// ===== COLORS =====
+// ===== CHINESE COLOR PALETTES =====
 const paletteGroups = [
-    // Gold/Red (traditional)
-    ['#ffd700', '#ffaa00', '#ff6600', '#ff3300'],
-    // Pink/Magenta
-    ['#ff69b4', '#ff1493', '#ff69b4', '#ffffff'],
-    // Blue/Cyan
-    ['#00ccff', '#0088ff', '#00ffff', '#aaddff'],
-    // Green/Emerald
-    ['#00ff66', '#00cc44', '#88ff00', '#ccffaa'],
-    // Purple/Violet
-    ['#aa44ff', '#9b59ff', '#cc66ff', '#eeccff'],
-    // Red/Orange
-    ['#ff2200', '#ff4400', '#ff6600', '#ffaa00'],
-    // Silver/White
-    ['#ffffff', '#ccddff', '#aabbcc', '#eeeeff'],
-    // Multi rainbow
-    ['#ff0000', '#ffff00', '#00ff00', '#0088ff'],
+    // 🏮 Imperial Red & Gold (most common)
+    ['#ff0000', '#cc0000', '#ffd700', '#ffaa00'],
+    // 🧧 Crimson & Scarlet
+    ['#dc143c', '#ff2200', '#ff4400', '#ff6600'],
+    // 💛 Pure Gold & Amber
+    ['#ffd700', '#ffb300', '#ff8c00', '#ffe066'],
+    // 🔴 Red & White (celebration)
+    ['#ff0000', '#ff3333', '#ffffff', '#ffcccc'],
+    // 🏮 Lantern Red & Warm Gold
+    ['#ee0000', '#ff4500', '#ffd700', '#fff0aa'],
+    // 🐉 Dragon Green & Gold
+    ['#00cc44', '#00ff66', '#ffd700', '#88ff00'],
+    // 🌸 Plum Blossom Pink & Red
+    ['#ff69b4', '#ff1493', '#ff0044', '#ffaacc'],
+    // 🎆 Silver & Gold (premium)
+    ['#ffffff', '#ffd700', '#ffee88', '#ccddee'],
+    // 🔮 Imperial Purple & Gold
+    ['#8b00ff', '#aa44ff', '#ffd700', '#cc66ff'],
+    // 🎇 Jade Green & Red
+    ['#00aa66', '#00ff88', '#ff0000', '#ffd700'],
 ];
 
 function randomPalette() {
+    // Weight toward red/gold palettes (first 5) — 70% chance
+    if (Math.random() < 0.7) {
+        return paletteGroups[Math.floor(Math.random() * 5)];
+    }
     return paletteGroups[Math.floor(Math.random() * paletteGroups.length)];
 }
 
@@ -208,85 +254,72 @@ class Rocket {
         this.palette = randomPalette();
         this.exploded = false;
         this.brightness = 200 + Math.random() * 55;
-        if (Math.random() < 0.35) playWhistle();
+        if (Math.random() < 0.4) playWhistle();
     }
 
     update() {
         this.trail.push({ x: this.x, y: this.y, a: 1 });
-        if (this.trail.length > 20) this.trail.shift();
-        for (const t of this.trail) t.a *= 0.92;
-
+        if (this.trail.length > 22) this.trail.shift();
+        for (const t of this.trail) t.a *= 0.91;
         this.x += this.vx;
         this.y += this.vy;
         this.vy += 0.05;
-
-        if (this.vy >= -0.8 || this.y <= this.targetY) {
-            this.exploded = true;
-        }
+        if (this.vy >= -0.8 || this.y <= this.targetY) this.exploded = true;
     }
 
     draw() {
-        // Rocket trail — thin bright line
+        // Golden rocket trail
         for (let i = 1; i < this.trail.length; i++) {
             const t0 = this.trail[i - 1];
             const t1 = this.trail[i];
-            const a = t1.a * 0.5;
+            const a = t1.a * 0.6;
             if (a < 0.01) continue;
             ctx.beginPath();
             ctx.moveTo(t0.x, t0.y);
             ctx.lineTo(t1.x, t1.y);
-            ctx.strokeStyle = `rgba(${this.brightness},${this.brightness - 50},100,${a})`;
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = `rgba(255,${180 + Math.random() * 40},50,${a})`;
+            ctx.lineWidth = 1.8;
             ctx.stroke();
         }
-
-        // Head glow
+        // Head glow — warm golden
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 12);
-        grad.addColorStop(0, 'rgba(255,240,200,0.9)');
-        grad.addColorStop(0.4, 'rgba(255,180,80,0.4)');
-        grad.addColorStop(1, 'rgba(255,100,30,0)');
+        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 15);
+        grad.addColorStop(0, 'rgba(255,240,180,0.95)');
+        grad.addColorStop(0.3, 'rgba(255,180,60,0.5)');
+        grad.addColorStop(1, 'rgba(255,80,20,0)');
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 12, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, 15, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-
-        // Sparks from rocket
-        if (Math.random() < 0.6) {
+        // Gold sparks
+        if (Math.random() < 0.7) {
             sparks.push(new Spark(
-                this.x + (Math.random() - 0.5) * 3,
-                this.y + Math.random() * 5,
+                this.x + (Math.random() - 0.5) * 4,
+                this.y + Math.random() * 6,
                 (Math.random() - 0.5) * 1.5,
-                Math.random() * 2 + 1,
-                '#ffcc66', 0.6, 0.03
+                Math.random() * 2.5 + 1,
+                Math.random() < 0.5 ? '#ffd700' : '#ff6600', 0.7, 0.025
             ));
         }
     }
 }
 
-// ===== SPARK (tiny ember particle) =====
+// ===== SPARK =====
 class Spark {
     constructor(x, y, vx, vy, color, alpha, decay) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
         const c = hexToRgb(color);
         this.r = c.r; this.g = c.g; this.b = c.b;
         this.alpha = alpha || 1;
         this.decay = decay || 0.015;
-        this.size = Math.random() * 1.5 + 0.5;
+        this.size = Math.random() * 1.5 + 0.4;
     }
-
     update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vy += 0.03;
-        this.alpha -= this.decay;
+        this.x += this.vx; this.y += this.vy;
+        this.vy += 0.03; this.alpha -= this.decay;
     }
-
     draw() {
         if (this.alpha <= 0) return;
         ctx.beginPath();
@@ -296,13 +329,10 @@ class Spark {
     }
 }
 
-// ===== PARTICLE (explosion fragment) =====
+// ===== PARTICLE =====
 class Particle {
     constructor(x, y, vx, vy, color, config) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
         const c = hexToRgb(color);
         this.r = c.r; this.g = c.g; this.b = c.b;
         this.alpha = 1;
@@ -320,7 +350,6 @@ class Particle {
     update() {
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > this.trailLen) this.trail.shift();
-
         this.vx *= this.friction;
         this.vy *= this.friction;
         this.vy += this.gravity;
@@ -328,238 +357,340 @@ class Particle {
         this.y += this.vy;
         this.alpha -= this.decay;
         this.size *= this.shrink;
-
-        // Crackle: spawn sub-sparks
-        if (this.crackle && Math.random() < 0.04 && this.alpha > 0.3) {
-            sparks.push(new Spark(
-                this.x, this.y,
-                (Math.random() - 0.5) * 3,
-                (Math.random() - 0.5) * 3,
-                '#ffd700', 0.7, 0.04
-            ));
+        if (this.crackle && Math.random() < 0.05 && this.alpha > 0.3) {
+            sparks.push(new Spark(this.x, this.y,
+                (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3,
+                '#ffd700', 0.8, 0.04));
         }
     }
 
     draw() {
         if (this.alpha <= 0) return;
-        const a = this.flicker ? this.alpha * (0.7 + Math.random() * 0.3) : this.alpha;
-
-        // Trail
+        const a = this.flicker ? this.alpha * (0.6 + Math.random() * 0.4) : this.alpha;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
+        // Trail
         for (let i = 0; i < this.trail.length; i++) {
             const t = this.trail[i];
-            const ta = (i / this.trail.length) * a * 0.3;
+            const ta = (i / this.trail.length) * a * 0.35;
             ctx.beginPath();
             ctx.arc(t.x, t.y, this.size * 0.6, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${ta})`;
             ctx.fill();
         }
-
-        // Main dot
+        // Main
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${a})`;
         ctx.fill();
-
         // Glow
-        if (a > 0.2 && this.size > 1) {
+        if (a > 0.15 && this.size > 0.8) {
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${a * 0.12})`;
+            ctx.arc(this.x, this.y, this.size * 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${a * 0.1})`;
             ctx.fill();
         }
         ctx.restore();
     }
 }
 
-// ===== EXPLOSION TYPES =====
+// ===== CHINESE EXPLOSION TYPES =====
 function createExplosion(x, y, palette) {
-    const types = ['chrysanthemum', 'peony', 'willow', 'palm', 'ring', 'crossette', 'crackle', 'dahlia'];
+    const types = [
+        'chrysanthemum', 'chrysanthemum',  // Most common in Chinese fireworks
+        'brocade', 'brocade',              // Golden crown — very Chinese
+        'waterfall',                        // Golden rain cascade
+        'firecracker',                      // 鞭炮 string crackers
+        'dragon',                           // 龙 spiral
+        'lantern',                          // 灯笼 warm glow burst
+        'peony',                            // 牡丹 round bright
+        'doubleRing',                       // 双环 double ring
+        'willow',                           // 柳 drooping gold
+        'crossette',                        // Multi-break
+    ];
     const type = types[Math.floor(Math.random() * types.length)];
 
     switch (type) {
         case 'chrysanthemum': explChrysanthemum(x, y, palette); break;
+        case 'brocade': explBrocade(x, y); break;
+        case 'waterfall': explWaterfall(x, y); break;
+        case 'firecracker': explFirecracker(x, y); break;
+        case 'dragon': explDragon(x, y, palette); break;
+        case 'lantern': explLantern(x, y, palette); break;
         case 'peony': explPeony(x, y, palette); break;
-        case 'willow': explWillow(x, y, palette); break;
-        case 'palm': explPalm(x, y, palette); break;
-        case 'ring': explRing(x, y, palette); break;
+        case 'doubleRing': explDoubleRing(x, y, palette); break;
+        case 'willow': explWillow(x, y); break;
         case 'crossette': explCrossette(x, y, palette); break;
-        case 'crackle': explCrackle(x, y, palette); break;
-        case 'dahlia': explDahlia(x, y, palette); break;
     }
 
-    // Flash effect
     drawFlash(x, y, palette[0]);
-
-    // Sound
-    playBoom(type === 'chrysanthemum' || type === 'dahlia' ? 'big' : 'small');
-    if (type === 'crackle') setTimeout(playCrackle, 150);
+    const bigTypes = ['chrysanthemum', 'brocade', 'waterfall', 'lantern'];
+    playBoom(bigTypes.includes(type) ? 'big' : 'small');
+    if (type === 'firecracker') setTimeout(playCrackle, 100);
 }
 
 function drawFlash(x, y, color) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const c = hexToRgb(color);
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, 120);
-    grad.addColorStop(0, `rgba(255,255,255,0.5)`);
-    grad.addColorStop(0.2, `rgba(${c.r},${c.g},${c.b},0.3)`);
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, 140);
+    grad.addColorStop(0, 'rgba(255,255,240,0.6)');
+    grad.addColorStop(0.15, `rgba(${c.r},${c.g},${c.b},0.35)`);
     grad.addColorStop(1, `rgba(${c.r},${c.g},${c.b},0)`);
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(x, y, 120, 0, Math.PI * 2);
+    ctx.arc(x, y, 140, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 }
 
-// 🌼 Chrysanthemum — dense sphere, long trails
+// 🌼 菊花 Chrysanthemum — dense, long golden-tipped trails
 function explChrysanthemum(x, y, pal) {
-    const count = 180;
+    const count = 220;
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 2 + Math.random() * 5;
-        const color = pal[Math.floor(Math.random() * pal.length)];
+        const color = i < count * 0.7 ? pal[Math.floor(Math.random() * pal.length)] : '#ffd700';
         particles.push(new Particle(x, y,
             Math.cos(angle) * speed, Math.sin(angle) * speed,
-            color, { decay: 0.005, friction: 0.985, gravity: 0.015, trailLen: 8, size: 2.5 }
+            color, { decay: 0.004, friction: 0.986, gravity: 0.013, trailLen: 10, size: 2.5 }
         ));
     }
 }
 
-// 🌸 Peony — round, bright, short trails
+// 🌸 牡丹 Peony — round, bright red/gold
 function explPeony(x, y, pal) {
-    const count = 140;
+    const count = 160;
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 3 + Math.random() * 4;
         const color = pal[Math.floor(Math.random() * pal.length)];
         particles.push(new Particle(x, y,
             Math.cos(angle) * speed, Math.sin(angle) * speed,
-            color, { decay: 0.009, friction: 0.975, gravity: 0.02, trailLen: 3, size: 3 }
+            color, { decay: 0.008, friction: 0.976, gravity: 0.018, trailLen: 4, size: 3 }
         ));
     }
 }
 
-// 🌿 Willow — drooping trails
-function explWillow(x, y, pal) {
-    const count = 150;
+// 👑 锦冠 Brocade Crown — shower of golden sparks
+function explBrocade(x, y) {
+    const count = 250;
+    const golds = ['#ffd700', '#ffb300', '#ff8c00', '#ffe066', '#ffcc33'];
     for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 5.5;
+        const color = golds[Math.floor(Math.random() * golds.length)];
+        particles.push(new Particle(x, y,
+            Math.cos(angle) * speed, Math.sin(angle) * speed,
+            color, { decay: 0.003, friction: 0.99, gravity: 0.02, trailLen: 14, size: 2, shrink: 0.999, flicker: true }
+        ));
+    }
+    // White core
+    for (let i = 0; i < 30; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 2;
+        particles.push(new Particle(x, y,
+            Math.cos(angle) * speed, Math.sin(angle) * speed,
+            '#ffffff', { decay: 0.015, friction: 0.97, gravity: 0.02, trailLen: 3, size: 3.5 }
+        ));
+    }
+}
+
+// 🌊 金雨 Golden Waterfall — cascading gold rain
+function explWaterfall(x, y) {
+    const golds = ['#ffd700', '#ffb300', '#ffcc00', '#ffe066'];
+    // Wide spread
+    for (let i = 0; i < 200; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spreadX = (Math.random() - 0.5) * 6;
+        const spreadY = Math.random() * 2 - 3;
+        const color = golds[Math.floor(Math.random() * golds.length)];
+        particles.push(new Particle(x, y,
+            spreadX, spreadY,
+            color, { decay: 0.002, friction: 0.997, gravity: 0.05, trailLen: 18, size: 1.8, shrink: 0.9995, flicker: true }
+        ));
+    }
+    // Red accent streaks
+    for (let i = 0; i < 50; i++) {
+        const spreadX = (Math.random() - 0.5) * 5;
+        particles.push(new Particle(x, y,
+            spreadX, -(1 + Math.random() * 2),
+            '#ff0000', { decay: 0.005, friction: 0.995, gravity: 0.04, trailLen: 8, size: 2 }
+        ));
+    }
+}
+
+// 🧨 鞭炮 Firecracker String — rapid small pops
+function explFirecracker(x, y) {
+    const count = 15;
+    for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+            const ox = x + (Math.random() - 0.5) * 60;
+            const oy = y + (Math.random() - 0.5) * 40;
+            // Small red burst
+            for (let j = 0; j < 18; j++) {
+                const a = Math.random() * Math.PI * 2;
+                const s = 1 + Math.random() * 2.5;
+                const c = Math.random() < 0.7 ? '#ff0000' : '#ffd700';
+                particles.push(new Particle(ox, oy,
+                    Math.cos(a) * s, Math.sin(a) * s,
+                    c, { decay: 0.025, friction: 0.96, gravity: 0.02, trailLen: 2, size: 1.8 }
+                ));
+            }
+            // Small flash
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const g = ctx.createRadialGradient(ox, oy, 0, ox, oy, 25);
+            g.addColorStop(0, 'rgba(255,255,200,0.6)');
+            g.addColorStop(1, 'rgba(255,100,0,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(ox, oy, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            if (Math.random() < 0.5) playCrackle();
+        }, i * 80);
+    }
+}
+
+// 🐉 龙 Dragon Spiral — spiraling trail
+function explDragon(x, y, pal) {
+    const arms = 3 + Math.floor(Math.random() * 3);
+    const pointsPerArm = 40;
+    for (let a = 0; a < arms; a++) {
+        const baseAngle = (a / arms) * Math.PI * 2;
+        const color = pal[a % pal.length];
+        for (let i = 0; i < pointsPerArm; i++) {
+            const t = i / pointsPerArm;
+            const spiralAngle = baseAngle + t * Math.PI * 4;
+            const speed = 1 + t * 5;
+            const vx = Math.cos(spiralAngle) * speed;
+            const vy = Math.sin(spiralAngle) * speed;
+            setTimeout(() => {
+                particles.push(new Particle(x, y, vx, vy,
+                    color, { decay: 0.005, friction: 0.985, gravity: 0.015, trailLen: 8, size: 2.5 }
+                ));
+                // Gold sparkle on dragon body
+                if (Math.random() < 0.3) {
+                    sparks.push(new Spark(x + vx * 2, y + vy * 2,
+                        (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2,
+                        '#ffd700', 0.8, 0.03));
+                }
+            }, i * 15);
+        }
+    }
+}
+
+// 🏮 灯笼 Lantern Burst — warm round glow with red outer ring
+function explLantern(x, y, pal) {
+    // Warm inner glow (gold/orange)
+    for (let i = 0; i < 120; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 1.5 + Math.random() * 3;
-        const color = pal[Math.floor(Math.random() * pal.length)];
+        const c = ['#ffd700', '#ffaa00', '#ff8c00', '#ffe066'][Math.floor(Math.random() * 4)];
         particles.push(new Particle(x, y,
-            Math.cos(angle) * speed, Math.sin(angle) * speed - 0.5,
-            color, { decay: 0.003, friction: 0.993, gravity: 0.035, trailLen: 12, size: 2, shrink: 0.999 }
+            Math.cos(angle) * speed, Math.sin(angle) * speed,
+            c, { decay: 0.005, friction: 0.985, gravity: 0.015, trailLen: 6, size: 3 }
+        ));
+    }
+    // Red outer ring
+    for (let i = 0; i < 60; i++) {
+        const angle = (i / 60) * Math.PI * 2;
+        const speed = 5 + Math.random() * 1.5;
+        particles.push(new Particle(x, y,
+            Math.cos(angle) * speed, Math.sin(angle) * speed,
+            '#ff0000', { decay: 0.007, friction: 0.98, gravity: 0.018, trailLen: 5, size: 2.5 }
+        ));
+    }
+    // White center flash particles
+    for (let i = 0; i < 20; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.5 + Math.random() * 1.5;
+        particles.push(new Particle(x, y,
+            Math.cos(angle) * speed, Math.sin(angle) * speed,
+            '#ffffff', { decay: 0.02, friction: 0.97, gravity: 0.01, trailLen: 2, size: 4 }
         ));
     }
 }
 
-// 🌴 Palm — upward then droop
-function explPalm(x, y, pal) {
-    const count = 100;
+// 💍 双环 Double Ring — two concentric rings
+function explDoubleRing(x, y, pal) {
+    // Outer ring — red
+    const outerCount = 80;
+    const outerSpeed = 5.5;
+    for (let i = 0; i < outerCount; i++) {
+        const angle = (i / outerCount) * Math.PI * 2;
+        particles.push(new Particle(x, y,
+            Math.cos(angle) * outerSpeed, Math.sin(angle) * outerSpeed,
+            '#ff0000', { decay: 0.007, friction: 0.98, gravity: 0.016, trailLen: 5, size: 2.8 }
+        ));
+    }
+    // Inner ring — gold
+    const innerCount = 50;
+    const innerSpeed = 3;
+    for (let i = 0; i < innerCount; i++) {
+        const angle = (i / innerCount) * Math.PI * 2 + 0.15;
+        particles.push(new Particle(x, y,
+            Math.cos(angle) * innerSpeed, Math.sin(angle) * innerSpeed,
+            '#ffd700', { decay: 0.008, friction: 0.978, gravity: 0.018, trailLen: 4, size: 2.5 }
+        ));
+    }
+    // Center sparkle
+    for (let i = 0; i < 25; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.5 + Math.random();
+        particles.push(new Particle(x, y,
+            Math.cos(angle) * speed, Math.sin(angle) * speed,
+            '#ffffff', { decay: 0.015, size: 3, trailLen: 2, gravity: 0.01, friction: 0.97 }
+        ));
+    }
+}
+
+// 🌿 柳 Willow — golden drooping leaves
+function explWillow(x, y) {
+    const count = 180;
+    const golds = ['#ffd700', '#ffb300', '#ffcc33', '#ffe066'];
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const spread = Math.random() * 0.5;
-        const speed = 4 + Math.random() * 4;
-        const color = pal[Math.floor(Math.random() * pal.length)];
+        const speed = 1 + Math.random() * 3.5;
+        const color = golds[Math.floor(Math.random() * golds.length)];
         particles.push(new Particle(x, y,
-            Math.cos(angle) * spread * speed,
-            -speed * 0.7 + Math.random() * 0.5,
-            color, { decay: 0.007, friction: 0.978, gravity: 0.04, trailLen: 6, size: 2.5 }
+            Math.cos(angle) * speed, Math.sin(angle) * speed - 0.5,
+            color, { decay: 0.0025, friction: 0.994, gravity: 0.04, trailLen: 16, size: 1.8, shrink: 0.9995 }
         ));
     }
 }
 
-// 💍 Ring — circular pattern
-function explRing(x, y, pal) {
-    const count = 80;
-    const speed = 4 + Math.random() * 2;
-    for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2;
-        const color = pal[i % pal.length];
-        particles.push(new Particle(x, y,
-            Math.cos(angle) * speed,
-            Math.sin(angle) * speed,
-            color, { decay: 0.008, friction: 0.98, gravity: 0.018, trailLen: 5, size: 2.8 }
-        ));
-    }
-    // Inner ring
-    const speed2 = speed * 0.5;
-    for (let i = 0; i < count / 2; i++) {
-        const angle = (i / (count / 2)) * Math.PI * 2 + 0.1;
-        particles.push(new Particle(x, y,
-            Math.cos(angle) * speed2,
-            Math.sin(angle) * speed2,
-            '#ffffff', { decay: 0.01, friction: 0.975, gravity: 0.02, trailLen: 3, size: 2 }
-        ));
-    }
-}
-
-// ✖️ Crossette — splits into sub-bursts
+// ✖️ 交叉 Crossette — breaks into sub-bursts (red & gold)
 function explCrossette(x, y, pal) {
-    const points = 8;
+    const points = 6 + Math.floor(Math.random() * 4);
     for (let i = 0; i < points; i++) {
         const angle = (i / points) * Math.PI * 2;
         const speed = 5;
         const dx = Math.cos(angle) * speed;
         const dy = Math.sin(angle) * speed;
-        const color = pal[i % pal.length];
-
-        // Primary
-        for (let j = 0; j < 6; j++) {
+        const color = i % 2 === 0 ? '#ff0000' : '#ffd700';
+        for (let j = 0; j < 5; j++) {
             particles.push(new Particle(x, y,
                 dx + (Math.random() - 0.5) * 0.5,
                 dy + (Math.random() - 0.5) * 0.5,
                 color, { decay: 0.012, friction: 0.97, gravity: 0.02, trailLen: 4, size: 2.5 }
             ));
         }
-
-        // Secondary burst delayed
         const subX = x + dx * 18;
         const subY = y + dy * 18;
         setTimeout(() => {
-            for (let k = 0; k < 20; k++) {
+            for (let k = 0; k < 25; k++) {
                 const a2 = Math.random() * Math.PI * 2;
-                const s2 = 1 + Math.random() * 2;
+                const s2 = 1 + Math.random() * 2.5;
                 particles.push(new Particle(subX, subY,
                     Math.cos(a2) * s2, Math.sin(a2) * s2,
-                    pal[Math.floor(Math.random() * pal.length)],
+                    Math.random() < 0.5 ? '#ffd700' : '#ff0000',
                     { decay: 0.012, friction: 0.97, gravity: 0.025, trailLen: 3, size: 2 }
                 ));
             }
             playBoom('small');
-        }, 350);
-    }
-}
-
-// 🧨 Crackle — sparkly crackling
-function explCrackle(x, y, pal) {
-    const count = 200;
-    for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 1.5 + Math.random() * 4;
-        particles.push(new Particle(x, y,
-            Math.cos(angle) * speed, Math.sin(angle) * speed,
-            '#ffd700', { decay: 0.004, friction: 0.99, gravity: 0.012, trailLen: 2, size: 1.5, flicker: true, crackle: true }
-        ));
-    }
-}
-
-// 🌺 Dahlia — large dense multi-layer
-function explDahlia(x, y, pal) {
-    const layers = 3;
-    for (let l = 0; l < layers; l++) {
-        const count = 100;
-        const baseSpeed = 2 + l * 2;
-        const color = pal[l % pal.length];
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = baseSpeed + Math.random() * 2;
-            particles.push(new Particle(x, y,
-                Math.cos(angle) * speed, Math.sin(angle) * speed,
-                color, { decay: 0.006, friction: 0.983, gravity: 0.018, trailLen: 6, size: 2 + l * 0.5 }
-            ));
-        }
+        }, 300);
     }
 }
 
@@ -682,6 +813,7 @@ function startApp() {
     screen.classList.add('fade-out');
     if (!audioCtx) initAudio();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    loadYTApi(); // Pre-load YouTube player
     setTimeout(() => {
         screen.style.display = 'none';
         runCountdown();
