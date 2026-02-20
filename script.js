@@ -858,3 +858,111 @@ function spawnWishes() {
     createWish();
     setTimeout(spawnWishes, Math.random() * 150 + 80);
 }
+
+
+// ==============================
+// SOCIAL SHARING
+// ==============================
+const SHARE_URL = 'https://datbonk1-dev.github.io/new-year-2026/';
+const SHARE_TITLE = '🎆 Chúc Mừng Năm Mới 2026 🎆';
+const SHARE_TEXT = '🎇 Gửi bạn lời chúc Tết Nguyên Đán 2026 với pháo hoa 3D tuyệt đẹp! Nhấn vào để xem nhé! 🐍✨';
+
+let sharePanelOpen = false;
+let shareOverlay = null;
+
+function toggleSharePanel() {
+    const panel = document.getElementById('sharePanel');
+    sharePanelOpen = !sharePanelOpen;
+
+    if (sharePanelOpen) {
+        // Create overlay if not exists
+        if (!shareOverlay) {
+            shareOverlay = document.createElement('div');
+            shareOverlay.className = 'share-overlay';
+            shareOverlay.onclick = toggleSharePanel;
+            document.body.appendChild(shareOverlay);
+        }
+        shareOverlay.classList.add('visible');
+        panel.classList.remove('hidden');
+        panel.classList.add('visible');
+    } else {
+        if (shareOverlay) shareOverlay.classList.remove('visible');
+        panel.classList.remove('visible');
+        panel.classList.add('hidden');
+    }
+}
+
+function shareZalo() {
+    const url = `https://zalo.me/share?url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TITLE)}&description=${encodeURIComponent(SHARE_TEXT)}`;
+    window.open(url, '_blank', 'width=600,height=500');
+    toggleSharePanel();
+}
+
+function shareMessenger() {
+    const url = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(SHARE_URL)}&app_id=0&redirect_uri=${encodeURIComponent(SHARE_URL)}`;
+    window.open(url, '_blank', 'width=600,height=500');
+    toggleSharePanel();
+}
+
+function shareFacebook() {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`;
+    window.open(url, '_blank', 'width=600,height=500');
+    toggleSharePanel();
+}
+
+function shareTelegram() {
+    const url = `https://t.me/share/url?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(SHARE_TEXT)}`;
+    window.open(url, '_blank', 'width=600,height=500');
+    toggleSharePanel();
+}
+
+function shareTwitter() {
+    const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(SHARE_TEXT)}`;
+    window.open(url, '_blank', 'width=600,height=500');
+    toggleSharePanel();
+}
+
+function copyLink() {
+    navigator.clipboard.writeText(SHARE_URL).then(() => {
+        showToast('✅ Đã copy link!');
+        document.getElementById('copyText').textContent = 'Đã copy!';
+        setTimeout(() => {
+            document.getElementById('copyText').textContent = 'Copy link';
+        }, 2000);
+    }).catch(() => {
+        // Fallback
+        const input = document.createElement('input');
+        input.value = SHARE_URL;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('✅ Đã copy link!');
+    });
+}
+
+function shareNative() {
+    if (navigator.share) {
+        navigator.share({
+            title: SHARE_TITLE,
+            text: SHARE_TEXT,
+            url: SHARE_URL,
+        }).then(() => {
+            toggleSharePanel();
+        }).catch(() => { });
+    } else {
+        showToast('📋 Hãy copy link để chia sẻ!');
+        copyLink();
+    }
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.classList.add('hidden'), 400);
+    }, 2500);
+}
