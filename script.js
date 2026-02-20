@@ -12,9 +12,9 @@ const rockets = [];
 const sparks = [];
 const stars = [];
 const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || window.innerWidth < 600;
-const MAX_PARTICLES = isMobile ? 1200 : 2500;
-const MAX_SPARKS = isMobile ? 200 : 500;
-const PARTICLE_SCALE = isMobile ? 0.55 : 1; // reduce particle counts on mobile
+const MAX_PARTICLES = isMobile ? 800 : 2500;
+const MAX_SPARKS = isMobile ? 150 : 500;
+const PARTICLE_SCALE = isMobile ? 0.35 : 1;
 
 function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
@@ -32,7 +32,7 @@ window.addEventListener('resize', resize);
 // ===== STARS =====
 function initStars() {
     stars.length = 0;
-    const count = Math.min(250, Math.floor(W * H / 4000));
+    const count = isMobile ? Math.min(120, Math.floor(W * H / 8000)) : Math.min(250, Math.floor(W * H / 4000));
     for (let i = 0; i < count; i++) {
         stars.push({
             x: Math.random() * W,
@@ -132,11 +132,27 @@ function playWhistle() {
     osc.stop(audioCtx.currentTime + dur);
 }
 
-// ===== YOUTUBE BACKGROUND MUSIC =====
+// ===== BACKGROUND MUSIC (mobile-friendly) =====
+let musicPlaying = false;
+
+// --- Mobile: use HTML5 Audio (YouTube IFrame blocked on most phones) ---
+let bgAudio = null;
+
+function initMobileAudio() {
+    if (bgAudio) return;
+    bgAudio = new Audio();
+    bgAudio.loop = true;
+    bgAudio.volume = 0.4;
+    bgAudio.preload = 'auto';
+    // Free Tết/CNY music sources (direct MP3 — reliable on mobile)
+    bgAudio.src = 'https://cdn.pixabay.com/audio/2022/01/27/audio_faf4702e68.mp3';
+    bgAudio.load();
+}
+
+// --- Desktop: YouTube IFrame API ---
 let ytPlayer = null;
 let ytReady = false;
 
-// Load YouTube IFrame API
 function loadYTApi() {
     if (window.YT && window.YT.Player) {
         onYouTubeIframeAPIReady();
@@ -159,6 +175,7 @@ window.onYouTubeIframeAPIReady = function () {
             fs: 0,
             modestbranding: 1,
             rel: 0,
+            playsinline: 1,
         },
         events: {
             onReady: function () {
@@ -166,7 +183,6 @@ window.onYouTubeIframeAPIReady = function () {
                 ytPlayer.setVolume(40);
             },
             onStateChange: function (e) {
-                // Loop: when ended, replay
                 if (e.data === YT.PlayerState.ENDED) {
                     ytPlayer.seekTo(0);
                     ytPlayer.playVideo();
@@ -177,39 +193,57 @@ window.onYouTubeIframeAPIReady = function () {
 };
 
 function toggleMusic() {
-    if (!ytReady) {
-        loadYTApi();
-        return;
-    }
+    const btn = document.getElementById('musicBtn');
     if (musicPlaying) {
-        ytPlayer.pauseVideo();
+        // Pause
+        if (isMobile) {
+            if (bgAudio) bgAudio.pause();
+        } else {
+            if (ytReady) ytPlayer.pauseVideo();
+        }
         musicPlaying = false;
-        document.getElementById('musicBtn').textContent = '🔇 Bật nhạc';
+        if (btn) btn.textContent = '🔇 Bật nhạc';
     } else {
-        ytPlayer.playVideo();
+        // Play
+        if (isMobile) {
+            if (!bgAudio) initMobileAudio();
+            bgAudio.play().catch(() => { });
+        } else {
+            if (ytReady) ytPlayer.playVideo();
+            else loadYTApi();
+        }
         musicPlaying = true;
-        document.getElementById('musicBtn').textContent = '🔊 Tắt nhạc';
+        if (btn) btn.textContent = '🔊 Tắt nhạc';
     }
 }
 
 function startMusic() {
-    if (!ytReady) {
-        // Wait for API to load, then auto-play
-        const check = setInterval(() => {
-            if (ytReady) {
-                clearInterval(check);
-                ytPlayer.playVideo();
-                musicPlaying = true;
-                const btn = document.getElementById('musicBtn');
-                if (btn) btn.textContent = '🔊 Tắt nhạc';
-            }
-        }, 500);
-        return;
-    }
-    ytPlayer.playVideo();
-    musicPlaying = true;
     const btn = document.getElementById('musicBtn');
-    if (btn) btn.textContent = '🔊 Tắt nhạc';
+    if (isMobile) {
+        if (!bgAudio) initMobileAudio();
+        bgAudio.play().then(() => {
+            musicPlaying = true;
+            if (btn) btn.textContent = '🔊 Tắt nhạc';
+        }).catch(() => {
+            // Autoplay blocked — user can tap music button
+            if (btn) btn.textContent = '🔇 Bật nhạc';
+        });
+    } else {
+        if (!ytReady) {
+            const check = setInterval(() => {
+                if (ytReady) {
+                    clearInterval(check);
+                    ytPlayer.playVideo();
+                    musicPlaying = true;
+                    if (btn) btn.textContent = '🔊 Tắt nhạc';
+                }
+            }, 500);
+            return;
+        }
+        ytPlayer.playVideo();
+        musicPlaying = true;
+        if (btn) btn.textContent = '🔊 Tắt nhạc';
+    }
 }
 
 // ===== CHINESE COLOR PALETTES =====
@@ -356,7 +390,7 @@ class Particle {
         this.flicker = config.flicker || false;
         this.crackle = config.crackle || false;
         this.trail = [];
-        this.trailLen = config.trailLen || 4;
+        this.trailLen = isMobile ? Math.min(config.trailLen || 2, 3) : (config.trailLen || 4);
     }
 
     update(dt) {
@@ -425,8 +459,8 @@ class Particle {
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${a})`;
         ctx.fill();
-        // Glow
-        if (a > 0.2 && this.size > 1) {
+        // Glow (skip on mobile for perf)
+        if (!isMobile && a > 0.2 && this.size > 1) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${a * 0.08})`;
@@ -870,7 +904,8 @@ function startApp() {
     screen.classList.add('fade-out');
     if (!audioCtx) initAudio();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    loadYTApi(); // Pre-load YouTube player
+    if (isMobile) initMobileAudio(); // Pre-init audio on user tap
+    else loadYTApi();
     setTimeout(() => {
         screen.style.display = 'none';
         runCountdown();
