@@ -3,18 +3,26 @@
 // With Tết Remix Background Music
 // ==============================
 const canvas = document.getElementById('fireworkCanvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false });
 
-let W, H;
+let W, H, DPR;
 let fireworksStarted = false;
 const particles = [];
 const rockets = [];
 const sparks = [];
 const stars = [];
+const MAX_PARTICLES = 2500;
+const MAX_SPARKS = 500;
 
 function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 resize();
 window.addEventListener('resize', resize);
@@ -257,13 +265,14 @@ class Rocket {
         if (Math.random() < 0.4) playWhistle();
     }
 
-    update() {
+    update(dt) {
+        if (!dt) dt = 1;
         this.trail.push({ x: this.x, y: this.y, a: 1 });
         if (this.trail.length > 22) this.trail.shift();
-        for (const t of this.trail) t.a *= 0.91;
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vy += 0.05;
+        for (const t of this.trail) t.a *= Math.pow(0.91, dt);
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.vy += 0.05 * dt;
         if (this.vy >= -0.8 || this.y <= this.targetY) this.exploded = true;
     }
 
@@ -316,9 +325,10 @@ class Spark {
         this.decay = decay || 0.015;
         this.size = Math.random() * 1.5 + 0.4;
     }
-    update() {
-        this.x += this.vx; this.y += this.vy;
-        this.vy += 0.03; this.alpha -= this.decay;
+    update(dt) {
+        if (!dt) dt = 1;
+        this.x += this.vx * dt; this.y += this.vy * dt;
+        this.vy += 0.03 * dt; this.alpha -= this.decay * dt;
     }
     draw() {
         if (this.alpha <= 0) return;
@@ -347,16 +357,17 @@ class Particle {
         this.trailLen = config.trailLen || 4;
     }
 
-    update() {
+    update(dt) {
+        if (!dt) dt = 1;
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > this.trailLen) this.trail.shift();
-        this.vx *= this.friction;
-        this.vy *= this.friction;
-        this.vy += this.gravity;
-        this.x += this.vx;
-        this.y += this.vy;
-        this.alpha -= this.decay;
-        this.size *= this.shrink;
+        this.vx *= Math.pow(this.friction, dt);
+        this.vy *= Math.pow(this.friction, dt);
+        this.vy += this.gravity * dt;
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.alpha -= this.decay * dt;
+        this.size *= Math.pow(this.shrink, dt);
         if (this.crackle && Math.random() < 0.05 && this.alpha > 0.3) {
             sparks.push(new Spark(this.x, this.y,
                 (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3,
@@ -391,6 +402,34 @@ class Particle {
             ctx.fill();
         }
         ctx.restore();
+    }
+
+    // Batched version — called inside a ctx.save() with lighter composite already set
+    drawBatched() {
+        if (this.alpha <= 0) return;
+        const a = this.flicker ? this.alpha * (0.6 + Math.random() * 0.4) : this.alpha;
+        // Trail
+        for (let i = 0; i < this.trail.length; i++) {
+            const t = this.trail[i];
+            const ta = (i / this.trail.length) * a * 0.35;
+            if (ta < 0.01) continue;
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, this.size * 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${ta})`;
+            ctx.fill();
+        }
+        // Main
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${a})`;
+        ctx.fill();
+        // Glow
+        if (a > 0.2 && this.size > 1) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${a * 0.08})`;
+            ctx.fill();
+        }
     }
 }
 
@@ -427,6 +466,10 @@ function createExplosion(x, y, palette) {
     const bigTypes = ['chrysanthemum', 'brocade', 'waterfall', 'lantern'];
     playBoom(bigTypes.includes(type) ? 'big' : 'small');
     if (type === 'firecracker') setTimeout(playCrackle, 100);
+
+    // Cap particles to prevent frame drops
+    while (particles.length > MAX_PARTICLES) particles.shift();
+    while (sparks.length > MAX_SPARKS) sparks.shift();
 }
 
 function drawFlash(x, y, color) {
@@ -725,21 +768,27 @@ canvas.addEventListener('touchstart', (e) => {
 
 // ===== MAIN LOOP =====
 let frame = 0;
+let lastTs = 0;
 
 function animate(ts) {
     requestAnimationFrame(animate);
     if (!ts) ts = 0;
+    const dt = Math.min((ts - lastTs) / 16.667, 3); // normalized to 60fps, capped
+    lastTs = ts;
     frame++;
 
-    // Night sky fade (gives trails effect)
-    ctx.fillStyle = 'rgba(5, 0, 16, 0.12)';
+    // Smooth night sky fade (double pass for silky trails)
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(5, 0, 16, 0.08)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(5, 0, 16, 0.06)';
     ctx.fillRect(0, 0, W, H);
 
     // Subtle ground glow
-    if (fireworksStarted && frame % 3 === 0) {
+    if (fireworksStarted && frame % 5 === 0) {
         const groundGrad = ctx.createLinearGradient(0, H * 0.85, 0, H);
         groundGrad.addColorStop(0, 'rgba(20, 5, 40, 0)');
-        groundGrad.addColorStop(1, 'rgba(30, 10, 50, 0.15)');
+        groundGrad.addColorStop(1, 'rgba(30, 10, 50, 0.1)');
         ctx.fillStyle = groundGrad;
         ctx.fillRect(0, H * 0.85, W, H * 0.15);
     }
@@ -753,12 +802,11 @@ function animate(ts) {
     // Rockets
     for (let i = rockets.length - 1; i >= 0; i--) {
         const r = rockets[i];
-        r.update();
+        r.update(dt);
         r.draw();
         if (r.exploded) {
             createExplosion(r.x, r.y, r.palette);
-            // Secondary explosion chance
-            if (Math.random() < 0.35) {
+            if (Math.random() < 0.3) {
                 const delay = 200 + Math.random() * 300;
                 const rx = r.x + (Math.random() - 0.5) * 80;
                 const ry = r.y + (Math.random() - 0.5) * 60;
@@ -769,18 +817,21 @@ function animate(ts) {
         }
     }
 
-    // Particles
+    // Particles — batched composite
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.update();
-        p.draw();
+        p.update(dt);
+        p.drawBatched();
         if (p.alpha <= 0 || p.size < 0.3) particles.splice(i, 1);
     }
+    ctx.restore();
 
     // Sparks
     for (let i = sparks.length - 1; i >= 0; i--) {
         const s = sparks[i];
-        s.update();
+        s.update(dt);
         s.draw();
         if (s.alpha <= 0) sparks.splice(i, 1);
     }
